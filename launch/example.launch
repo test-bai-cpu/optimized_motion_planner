@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="debug" default="0" />
+    <param name="use_sim_time" value="false"/>
+
+    <node name="start_example" pkg="optimized_motion_planner" type="start_example" output="screen" >
+    </node>
+    <node name="optimized_motion_planning" pkg="optimized_motion_planner" type="optimized_motion_planning" output="screen" >
+    </node>
+</launch>
