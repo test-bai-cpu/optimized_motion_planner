@@ -1,37 +1,35 @@
-#include "dynamic_motion_planner/chomp_trajectory.hpp"
+#include "optimizer/CHOMP_dynamic_trajectory.hpp"
 
 namespace optimized_motion_planner {
-ChompTrajectory::ChompTrajectory(const std::vector<Eigen::Vector3d>& trajectory_points, const double start_time, const double end_time, const double discretization, const double speed) {
-	//this->start_time_ = start_time - 20.0;
-	std::cout << "Chomp trajectory start optimization time is: " << start_time - 20.0 << std::endl;
+
+CHOMPDynamicTrajectyory::CHOMPDynamicTrajectyory(const std::vector<Eigen::Vector3d>& trajectory_points, double end_time, double discretization, double quadrotor_speed) {
+	this->trajectory_points_ = trajectory_points;
 	this->end_time_ = end_time;
 	this->discretization_ = discretization;
-	this->speed_ = speed;
-	this->trajectory_points_ = trajectory_points;
+	this->quadrotor_speed_ = quadrotor_speed;
 	this->set_start_time();
 	this->calculate_duration_and_points_num_for_full_trajectory();
 	this->update_trajectory_for_diff();
 	this->fill_discretized_points();
 	this->fill_trajectory();
 }
-ChompTrajectory::ChompTrajectory(const Eigen::Vector3d& start_point, const Eigen::Vector3d& end_point) {
-	this->duration_ = hdi_plan_utils::get_distance(start_point, end_point) / this->speed_;
+
+CHOMPDynamicTrajectyory::CHOMPDynamicTrajectyory(const Eigen::Vector3d& start_point, const Eigen::Vector3d& end_point) {
+	this->duration_ = optimized_motion_planner_utils::get_distance(start_point, end_point) / this->quadrotor_speed_;
 	this->num_points_ = static_cast<int>(this->duration_ / this->discretization_);
 }
 
-ChompTrajectory::~ChompTrajectory() = default;
-
-void ChompTrajectory::set_start_time() {
-	this->start_time_ = this->end_time_ - hdi_plan_utils::get_distance(this->trajectory_points_.front(), this->trajectory_points_.back())/this->speed_;
+void CHOMPDynamicTrajectyory::set_start_time() {
+	this->start_time_ = this->end_time_ - optimized_motion_planner_utils::get_distance(this->trajectory_points_.front(), this->trajectory_points_.back())/this->quadrotor_speed_;
 }
 
-double ChompTrajectory::calculate_time_by_index(int index) {
+double CHOMPDynamicTrajectyory::calculate_time_by_index(int index) {
 	// the index starts from 0
 	return index * this->discretization_ + this->start_time_;
 }
 
-void ChompTrajectory::update_trajectory_for_diff() {
-	int diff_rule_length = hdi_plan_utils::DIFF_RULE_LENGTH;
+void CHOMPDynamicTrajectyory::update_trajectory_for_diff() {
+	int diff_rule_length = optimized_motion_planner_utils::DIFF_RULE_LENGTH;
 	this->start_extra_ = (diff_rule_length - 1) - this->start_index_origin; // 5
 	this->end_extra_ = (diff_rule_length - 1) - ((this->num_points_ - 1) - this->end_index_origin_); // 5
 
@@ -42,8 +40,8 @@ void ChompTrajectory::update_trajectory_for_diff() {
 	this->duration_diff_ = (this->num_points_diff_ - 1) * this->discretization_;
 }
 
-void ChompTrajectory::calculate_duration_and_points_num_for_full_trajectory() {
-	double discretize_length = this->discretization_ * this->speed_;
+void CHOMPDynamicTrajectyory::calculate_duration_and_points_num_for_full_trajectory() {
+	double discretize_length = this->discretization_ * this->quadrotor_speed_;
 	int count = 0;
 	double duration = 0.0;
 	int total_number_of_points = 0;
@@ -55,8 +53,8 @@ void ChompTrajectory::calculate_duration_and_points_num_for_full_trajectory() {
 			count += 1;
 			continue;
 		}
-		double distance = hdi_plan_utils::get_distance(last_point, path_point);
-		duration += distance / this->speed_;
+		double distance = optimized_motion_planner_utils::get_distance(last_point, path_point);
+		duration += distance / this->quadrotor_speed_;
 		if (distance < discretize_length) {
 			total_number_of_points += 1;
 			this->group_number_.push_back(1);
@@ -83,7 +81,7 @@ void ChompTrajectory::calculate_duration_and_points_num_for_full_trajectory() {
 	}
 }
 
-void ChompTrajectory::fill_trajectory() {
+void CHOMPDynamicTrajectyory::fill_trajectory() {
 	this->trajectory_.resize(this->num_points_diff_, this->num_joints_);
 	for (int i=0; i<this->num_points_; i++) {
 		for (int j=0; j<this->num_joints_; j++) {
@@ -98,14 +96,14 @@ void ChompTrajectory::fill_trajectory() {
 	}
 }
 
-void ChompTrajectory::fill_discretized_points() {
+void CHOMPDynamicTrajectyory::fill_discretized_points() {
 	this->discretized_points_.reserve(this->num_points_);
 	for (int i=1; i<=this->num_points_; i++) {
 		this->discretized_points_.push_back(this->calculate_position_by_index(i));
 	}
 }
 
-Eigen::Vector3d ChompTrajectory::calculate_position_by_index(int index) {
+Eigen::Vector3d CHOMPDynamicTrajectyory::calculate_position_by_index(int index) {
 	// the index starts from 1
 	int interval_index = 0;
 	int group_size = static_cast<int>(this->group_number_add_.size());
@@ -139,7 +137,7 @@ Eigen::Vector3d ChompTrajectory::calculate_position_by_index(int index) {
 	return index_point;
 }
 
-void ChompTrajectory::add_increments_to_trajectory(Eigen::MatrixXd::ColXpr increment, int joint_number, double scale) {
+void CHOMPDynamicTrajectyory::add_increments_to_trajectory(Eigen::MatrixXd::ColXpr increment, int joint_number, double scale) {
 	this->trajectory_.block(start_index_, 0, this->num_points_free_, this->num_joints_).col(joint_number) += scale * increment;
 }
 

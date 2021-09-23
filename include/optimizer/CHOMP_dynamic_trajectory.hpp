@@ -11,9 +11,9 @@
 namespace optimized_motion_planner {
 class CHOMPDynamicTrajectyory {
 public:
-	CHOMPDynamicTrajectyory(const std::vector<Eigen::Vector3d>& trajectory_points, const double start_time, const double end_time, const double discretization, const double speed);
+	CHOMPDynamicTrajectyory(const std::vector<Eigen::Vector3d>& trajectory_points, double end_time, double discretization, double quadrotor_speed);
 	CHOMPDynamicTrajectyory(const Eigen::Vector3d& start_point, const Eigen::Vector3d& end_point);
-	~CHOMPDynamicTrajectyory();
+	~CHOMPDynamicTrajectyory() = default;
 
 	Eigen::MatrixXd get_trajectory() const {
 		return this->trajectory_;
@@ -90,7 +90,7 @@ private:
 	int num_points_free_;
 	int num_joints_{3};
 	double discretization_{0.5}; // every interval is 0.5s
-	double speed_{1.0};
+	double quadrotor_speed_{1.0};
 	std::vector<int> group_number_;
 	std::vector<int> group_number_add_;
 	std::vector<Eigen::Vector3d> discretized_points_;

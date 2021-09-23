@@ -8,13 +8,14 @@
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 
-#include "dynamic_motion_planner/chomp_trajectory.hpp"
+#include "optimizer/CHOMP_dynamic_trajectory.hpp"
 #include "utils/utility_functions.hpp"
 
 namespace optimized_motion_planner {
+
 class CHOMPDynamicCost {
 public:
-	CHOMPDynamicCost(const std::shared_ptr<ChompTrajectory>& trajectory, const std::vector<double>& derivative_costs, double ridge_factor = 0.0);
+	CHOMPDynamicCost(const std::shared_ptr<CHOMPDynamicTrajectyory>& trajectory, const std::vector<double>& derivative_costs, double ridge_factor = 0.0);
 	~CHOMPDynamicCost();
 
 	double getMaxQuadCostInvValue() const {

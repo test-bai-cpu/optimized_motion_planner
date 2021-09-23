@@ -37,6 +37,8 @@ endif ()
 cs_add_library(optimized_motion_planning_dependencies
         src/motion_planning/RRTX.cpp
         src/motion_planning/RRTX_node.cpp
+        src/motion_planning/dynamic_obstacle.cpp
+        src/motion_planning/static_obstacle.cpp
         src/optimizer/CHOMP_dynamic.cpp
         src/optimizer/CHOMP_dynamic_trajectory.cpp
         src/optimizer/CHOMP_dynamic_cost.cpp

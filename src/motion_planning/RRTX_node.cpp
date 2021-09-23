@@ -3,7 +3,7 @@
 #include "motion_planning/RRTX_node.hpp"
 
 namespace optimized_motion_planner {
-RRTXNode::RRTXNode(Eigen::Vector3d state, double time_from_start) {
+RRTXNode::RRTXNode(const Eigen::Vector3d& state, double time_from_start) {
 	this->state_= state;
 	double inf = std::numeric_limits<double>::infinity();
 	this->lmc_ = inf;
@@ -13,7 +13,7 @@ RRTXNode::RRTXNode(Eigen::Vector3d state, double time_from_start) {
 	this->parent = nullptr;
 }
 
-RRTXNode::~RRTNode() = default;
+RRTXNode::~RRTXNode() = default;
 
 void RRTXNode::add_to_neighbor_edge_list(double edge) {
 	this->neighbor_edge_list_.push_back(edge);

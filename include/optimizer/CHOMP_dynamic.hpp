@@ -13,23 +13,20 @@
 
 #include <ros/ros.h>
 
-#include "generate_dynamic_scene/obstacle.hpp"
-#include "dynamic_motion_planner/chomp_trajectory.hpp"
-#include "dynamic_motion_planner/chomp_cost.hpp"
-#include "generate_dynamic_scene/obstacle.hpp"
-#include "generate_dynamic_scene/human.hpp"
+#include "motion_planning/dynamic_obstacle.hpp"
+#include "optimizer/CHOMP_dynamic_trajectory.hpp"
+#include "optimizer/CHOMP_dynamic_cost.hpp"
 #include "utils/utility_functions.hpp"
+#include "utils/optimizer_params.hpp"
 
 namespace optimized_motion_planner {
 class CHOMPDynamic {
 public:
-	CHOMPDynamic(double collision_threshold, double planning_time_limit, int max_iterations, int max_iterations_after_collision_free,
-		  double learning_rate, double obstacle_cost_weight, double dynamic_obstacle_cost_weight, double dynamic_collision_factor,
-		  double smoothness_cost_weight, double smoothness_cost_velocity, double smoothness_cost_acceleration, double smoothness_cost_jerk,
-		  double ridge_factor, double min_clearence, double joint_update_limit, double quadrotor_radius,
-		  const std::shared_ptr<ChompTrajectory>& trajectory, const std::map<std::string, std::shared_ptr<Obstacle>>& obstacle_map,
-		  const std::map<int, std::shared_ptr<Human>>& human_map, int chomp_path_file_num);
-	~CHOMPDynamic();
+	CHOMPDynamic(const std::shared_ptr<optimized_motion_planner_utils::OptimizerParams>& optimizer_params,
+			     const std::shared_ptr<CHOMPDynamicTrajectyory>& trajectory,
+			     const std::map<std::string,std::shared_ptr<Obstacle>>& obstacle_map,
+				 const std::map<int, std::shared_ptr<DynamicObstacle>>& dynamic_obstacle_map, int chomp_path_file_num);
+	~CHOMPDynamic() = default;
 
 	std::vector<Eigen::Vector3d> get_optimized_trajectory() const {
 		return this->optimized_trajectory_;
@@ -40,7 +37,7 @@ private:
 	std::ofstream chomp_cost_file;
 	void check_params();
 
-	std::shared_ptr<ChompTrajectory> full_trajectory_;
+	std::shared_ptr<CHOMPDynamicTrajectyory> full_trajectory_;
 	std::vector<Eigen::Vector3d> optimized_trajectory_;
 	int num_vars_all_;
 	int num_vars_free_;
@@ -54,10 +51,11 @@ private:
 	bool filter_mode_{false};
 	double collision_threshold_{0.07};
 
+	void set_params(const std::shared_ptr<optimized_motion_planner_utils::OptimizerParams>& optimizer_params);
 
 	// joint
 	int num_joints_{3};
-	std::vector<std::shared_ptr<ChompCost>> joint_costs_;
+	std::vector<std::shared_ptr<CHOMPDynamicCost>> joint_costs_;
 
 	// trajectory
 	Eigen::MatrixXd best_trajectory_;
@@ -93,10 +91,9 @@ private:
 	double get_potential_for_gradient(double x, double y, double z);
 	void export_potential_data(bool if_dynamic);
 	void export_potential_gradient_data(bool if_dynamic);
-	//void get_jacobian(int trajectory_point, const Eigen::Vector3d& collision_point_pos);
 
 	// dynamic collision cost
-	std::map<int, std::shared_ptr<Human>> human_map_;
+	std::map<int, std::shared_ptr<DynamicObstacle>> dynamic_obstacle_map_;
 	std::vector<double> dynamic_collision_point_potential_;
 	std::vector<Eigen::Vector3d> dynamic_collision_point_potential_gradient_;
 	double get_dynamic_potential(const Eigen::Vector3d& point, int index);
@@ -142,5 +139,6 @@ private:
 	int chomp_path_file_num_{0};
 
 };
+
 
 }
