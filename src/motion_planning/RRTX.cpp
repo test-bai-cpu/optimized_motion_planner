@@ -213,7 +213,7 @@ bool RRTX::solve() {
 
 		ros::WallTime solve_start_time = ros::WallTime::now();
 		this->iteration_count += 1;
-		//std::cout << "The iteration number is: " << this->iteration_count << "The nodes number is: " << static_cast<double>(this->nearest_neighbors_tree_->size()) << " Minus is: " << this->iteration_count - static_cast<double>(this->nearest_neighbors_tree_->size()) << std::endl;
+		std::cout << "The iteration number is: " << this->iteration_count << "The nodes number is: " << static_cast<double>(this->nearest_neighbors_tree_->size()) << " Minus is: " << this->iteration_count - static_cast<double>(this->nearest_neighbors_tree_->size()) << std::endl;
 
 		this->calculateRRG();
 
@@ -374,13 +374,6 @@ void RRTX::publish_with_optimizer() {
 	auto chomp = std::make_shared<CHOMPDynamic>(this->optimizer_params_, chomp_trajectory, this->obstacle_map, this->dynamic_obstacle_map_, this->chomp_path_file_num_);
 	this->chomp_path_file_num_ += 1;
 	std::vector<Eigen::Vector3d> optimized_trajectory = chomp->get_optimized_trajectory();
-
-
-	for (int i = 0; i < static_cast<int>(optimized_trajectory.size()); i++) {
-		Eigen::Vector3d point = optimized_trajectory.at(i);
-		std::cout << "##Optimized path is: " << point(0) << " " << point(1) << " " << point(2) << std::endl;
-	}
-
 
 	double chomp_process_time = (ros::WallTime::now() - chomp_start_time).toSec();
 	std::cout << "The optimization time is: " << chomp_process_time << std::endl;
@@ -750,7 +743,6 @@ void RRTX::obstacle_info_callback(const optimized_motion_planner::obstacle_info:
 		return;
 	}
 
-	std::cout << "Motion Planner node: callback" << std::endl;
 	std::string obstacle_name = msg->name;
 	bool obstacle_operation = msg->operation;
 	double obstacle_size = static_cast<double>(msg->size);
@@ -765,7 +757,7 @@ void RRTX::dynamic_obstacle_movement_callback(const optimized_motion_planner::ob
 	int dynamic_obstacle_id = this->get_dynamic_obstacle_id(msg->name);
 	if (!this->dynamic_obstacle_map_tmp_[dynamic_obstacle_id]->get_if_move()) {
 		std::cout << "To get second pos of dynamic_obstacle_" << dynamic_obstacle_id << " ." << std::endl;
-		Eigen::Vector2d dynamic_obstacle_position(msg->position.x, msg->position.y);
+		Eigen::Vector3d dynamic_obstacle_position(msg->position.x, msg->position.y, msg->position.z);
 		this->dynamic_obstacle_map_tmp_[dynamic_obstacle_id]->set_second_position(dynamic_obstacle_position);
 		this->dynamic_obstacle_map_tmp_[dynamic_obstacle_id]->set_if_move(true);
 		this->dynamic_obstacle_map_[dynamic_obstacle_id] = this->dynamic_obstacle_map_tmp_[dynamic_obstacle_id];
@@ -781,7 +773,7 @@ void RRTX::update_obstacle() {
 
 	for (auto obstacle : this->obstacle_update_info_list) {
 		if (!obstacle->get_operation()) {
-			std::cout << "Add this ob: " << obstacle->get_position() << " " << obstacle->get_size() << " " << obstacle->get_name() << " " << obstacle->get_type() << std::endl;
+			std::cout << "Remove this obstacle: " << obstacle->get_position().x() << " " << obstacle->get_position().y() << " " << obstacle->get_position().z() << " " << obstacle->get_size() << " " << obstacle->get_name() << " " << obstacle->get_type() << std::endl;
 			this->obstacle_map.erase(obstacle->get_name());
 			this->remove_obstacle(obstacle);
 			remove_obstacle = true;
@@ -794,7 +786,7 @@ void RRTX::update_obstacle() {
 
 	for (auto obstacle : this->obstacle_update_info_list) {
 		if (obstacle->get_operation()) {
-			std::cout << "Add this ob: " << obstacle->get_position() << " " << obstacle->get_size() << " " << obstacle->get_name() << " " << obstacle->get_type() << std::endl;
+			std::cout << "Add this obstacle: " << obstacle->get_position().x() << " " << obstacle->get_position().y() << " " << obstacle->get_position().z() << " " << obstacle->get_size() << " " << obstacle->get_name() << " " << obstacle->get_type() << std::endl;
 			this->obstacle_map[obstacle->get_name()] = obstacle;
 			this->add_obstacle(obstacle);
 			add_obstacle = true;
@@ -803,7 +795,7 @@ void RRTX::update_obstacle() {
 
 	for (auto dynamic_obstacle : this->dynamic_obstacle_map_) {
 		if ((!dynamic_obstacle.second->get_if_add()) && dynamic_obstacle.second->get_if_move()) {
-			std::cout << "Adding dynamic_obstacle_" << dynamic_obstacle.first << " as an obstacle." << std::endl;
+			std::cout << "Add this dynamic obstacle with size = " << dynamic_obstacle.second->get_dynamic_obstacle_size() << std::endl;
 			this->add_dynamic_obstacle(dynamic_obstacle.first);
 			add_obstacle = true;
 			dynamic_obstacle.second->set_if_add(true);
@@ -882,7 +874,6 @@ void RRTX::add_dynamic_obstacle(int dynamic_obstacle_id) {
 	double inf = std::numeric_limits<double>::infinity();
 	for (auto node : this->node_list_) {
 		if (!this->dynamic_obstacle_map_[dynamic_obstacle_id]->check_if_node_inside_dynamic_obstacle(node)) continue;
-		std::cout << "The colliding with dynamic obstacle node position is: " << node->get_state().x() << " " << node->get_state().y() << " " << node->get_state().z() << " time:" << node->get_time() << std::endl;
 		for (auto child_node : node->children) {
 			//todo: check If only child to parent node, or need to set edge of parent to child also to inf, and also recalculate in remove obstacle step
 			child_node->update_neighbor_edge_list(node->get_unique_id(), std::numeric_limits<double>::infinity());

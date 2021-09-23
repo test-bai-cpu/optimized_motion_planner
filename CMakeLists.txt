@@ -25,6 +25,21 @@ target_link_libraries(start_example
         stdc++fs
         )
 
+# node: generate obstacle
+cs_add_library(generate_obstacle_dependencies
+        src/example/generate_obstacle.cpp
+        )
+
+cs_add_executable(generate_obstacle_node
+        src/example/generate_obstacle_node.cpp
+        )
+
+target_link_libraries(generate_obstacle_node
+        generate_obstacle_dependencies
+        ${catkin_LIBRARIES}
+        stdc++fs
+        )
+
 # node: motion planner
 find_package(ompl REQUIRED)
 if (OMPL_FOUND)

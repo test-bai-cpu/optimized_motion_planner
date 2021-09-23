@@ -5,9 +5,6 @@
 
     <node name="start_example" pkg="optimized_motion_planner" type="start_example" output="screen" >
     </node>
-    <node name="optimized_motion_planning" pkg="optimized_motion_planner" type="optimized_motion_planning" output="screen" >
-        <rosparam file="$(find optimized_motion_planner)/params/optimized_motion_planner.yaml" />
-    </node>
     <node name="generate_obstacle_node" pkg="optimized_motion_planner" type="generate_obstacle_node" output="screen" >
     </node>
 </launch>

@@ -43,27 +43,6 @@ void CHOMPDynamic::set_params(const std::shared_ptr<optimized_motion_planner_uti
 	this->quadrotor_radius_ = optimizer_params->quadrotor_radius;
 }
 
-void CHOMPDynamic::check_params() {
-	std::cout << "#collision_threshold: " << this->collision_threshold_ << std::endl;
-	std::cout << "#planning_time_limit: " << this->planning_time_limit_ << std::endl;
-	std::cout << "#max_iterations: " << this->max_iterations_ << std::endl;
-	std::cout << "#max_iterations_after_collision_free: " << this->max_iterations_after_collision_free_ << std::endl;
-
-	std::cout << "#learning_rate: " << this->learning_rate_ << std::endl;
-	std::cout << "#obstacle_cost_weight: " << this->obstacle_cost_weight_ << std::endl;
-	std::cout << "#dynamic_obstacle_cost_weight: " << this->dynamic_obstacle_cost_weight_ << std::endl;
-	std::cout << "#dynamic_collision_factor: " << this->dynamic_collision_factor_ << std::endl;
-	std::cout << "#smoothness_cost_weight: " << this->smoothness_cost_weight_ << std::endl;
-
-	std::cout << "#smoothness_cost_velocity: " << this->smoothness_cost_velocity_ << std::endl;
-	std::cout << "#smoothness_cost_acceleration: " << this->smoothness_cost_acceleration_ << std::endl;
-	std::cout << "#smoothness_cost_jerk: " << this->smoothness_cost_jerk_ << std::endl;
-	std::cout << "#ridge_factor: " << this->ridge_factor_ << std::endl;
-	std::cout << "#min_clearence: " << this->min_clearence_ << std::endl;
-	std::cout << "#joint_update_limit: " << this->joint_update_limit_ << std::endl;
-
-}
-
 void CHOMPDynamic::initialize() {
 	this->num_vars_all_ = this->full_trajectory_->get_num_points_diff(); // actual points + 10
 	this->num_vars_free_ = this->full_trajectory_->get_num_points_free(); // actual points - 2
@@ -71,9 +50,6 @@ void CHOMPDynamic::initialize() {
 	this->free_vars_start_ = this->full_trajectory_->get_start_index();
 	this->free_vars_end_ = this->full_trajectory_->get_end_index();
 
-	//ROS_INFO("#######Num of vars, actual points are: ");
-	//std::cout <<"##" << this->num_vars_origin_ << std::endl;
-	// get joint cost
 	std::vector<double> derivative_costs(3);
 	double joint_cost = 1.0;
 	derivative_costs[0] = joint_cost * this->smoothness_cost_velocity_;
@@ -109,9 +85,6 @@ void CHOMPDynamic::initialize() {
 
 	this->dynamic_collision_point_potential_.resize(this->num_vars_all_);
 	this->dynamic_collision_point_potential_gradient_.resize(this->num_vars_all_);
-	//this->jacobian_ = Eigen::MatrixXd::Zero(3, 1);
-	//this->jacobian_pseudo_inverse_ = Eigen::MatrixXd::Zero(1, 3);
-	//this->jacobian_jacobian_tranpose_ = Eigen::MatrixXd::Zero(3, 3);
 
 	this->collision_free_iteration_ = 0;
 	this->last_improvement_iteration_ = -1;
@@ -157,10 +130,6 @@ bool CHOMPDynamic::optimize() {
 			break;
 		}
 	}
-
-	//ROS_INFO("Terminated after %d iterations, using path from iteration %d", this->iteration_, this->last_improvement_iteration_);
-	//ROS_INFO("Optimization core finished in %f sec", (ros::WallTime::now() - start_time).toSec());
-	//ROS_INFO_STREAM("Time per iteration " << (ros::WallTime::now() - start_time).toSec() / (this->iteration_ * 1.0));
 
 	return is_collsion_free_;
 }
@@ -303,7 +272,7 @@ double CHOMPDynamic::get_potential_for_gradient(double x, double y, double z) {
 	Eigen::Vector3d point(x,y,z);
 	for (auto obstacle : this->obstacle_map_) {
 		double distance = optimized_motion_planner_utils::get_distance(point, obstacle.second->get_position()) -
-						  this->quadrotor_radius_ - (obstacle.second->get_size()/2.0);
+						  this->quadrotor_radius_ - obstacle.second->get_size();
 		if (distance < distance_to_nearest_obstacle) distance_to_nearest_obstacle = distance;
 	}
 
@@ -324,7 +293,6 @@ double CHOMPDynamic::get_dynamic_potential(const Eigen::Vector3d& point, int ind
 		Eigen::Vector3d predicted_position = dynamic_obstacle.second->predict_path(point_time);
 		double distance = optimized_motion_planner_utils::get_distance(point, predicted_position) -
 						  this->quadrotor_radius_ - dynamic_obstacle.second->get_dynamic_obstacle_size();
-		//std::cout << "the dynamic distance is: " << distance << " . The point time is: " << point_time << std::endl;
 		if (distance < distance_to_nearest_dynamic_obstacle) distance_to_nearest_dynamic_obstacle = distance;
 	}
 
@@ -336,10 +304,7 @@ double CHOMPDynamic::get_dynamic_potential(const Eigen::Vector3d& point, int ind
 	} else {
 		this->is_collsion_free_ = false;
 		potential = -distance_to_nearest_dynamic_obstacle + 0.5 * this->min_clearence_;
-		//std::cout << "the dynamic potential is: " << potential << ". And final is: " << potential * exp(-this->dynamic_collision_factor_ * point_time) << " And the point time is: " << point_time << std::endl;
 	}
-
-	//return potential;
 
 	if (static_cast<double>(index) < static_cast<double>(this->num_vars_all_) * 0.3) {
 		return potential * exp(-this->dynamic_collision_factor_ * point_time);
@@ -426,11 +391,6 @@ void CHOMPDynamic::calculate_smoothness_increments() {
 		this->smoothness_derivative_ = this->joint_costs_[i]->getDerivative(this->full_trajectory_->get_joint_trajectory(i));
 		this->smoothness_increments_.col(i) = -this->smoothness_derivative_.segment(this->full_trajectory_->get_start_index(), this->num_vars_free_);
 	}
-
-
-	for (int i = 0; i < this->num_vars_free_; i++) {
-		std::cout << "The smoothness increments are: " << this->smoothness_increments_(i, 0) << " " << this->smoothness_increments_(i, 1) << " " << this->smoothness_increments_(i, 2) << std::endl;
-	}
 }
 
 void CHOMPDynamic::calculate_collision_increments() {
@@ -472,11 +432,6 @@ void CHOMPDynamic::calculate_collision_increments() {
 
 		this->collision_increments_.row(i - this->free_vars_start_).transpose() +=
 				Eigen::MatrixXd::Identity(3, 3) * cartesian_gradient;
-	}
-
-
-	for (int i = 0; i < this->num_vars_free_; i++) {
-		std::cout << "The collision increments are: " << this->collision_increments_(i, 0) << " " << this->collision_increments_(i, 1) << " " << this->collision_increments_(i, 2) << std::endl;
 	}
 }
 
@@ -544,13 +499,11 @@ void CHOMPDynamic::add_increments_to_trajectory() {
 			scale = max_scale;
 		if (min_scale < scale)
 			scale = min_scale;
-		//std::cout << "In chomp scale is : " << scale << std::endl;
 		this->full_trajectory_->add_increments_to_trajectory(this->final_increments_.col(i), i, scale);
 	}
 }
 
 void CHOMPDynamic::convert_matrix_to_trajectory_points_vector() {
-	//ROS_INFO("Chomp: convert to optimized trajectory");
 	int start_extra = this->full_trajectory_->get_start_extra();
 
 	for (int i = 0; i < this->num_vars_origin_; i++) {

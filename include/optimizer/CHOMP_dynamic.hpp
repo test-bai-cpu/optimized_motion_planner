@@ -35,7 +35,6 @@ public:
 private:
 	// debug
 	std::ofstream chomp_cost_file;
-	void check_params();
 
 	std::shared_ptr<CHOMPDynamicTrajectyory> full_trajectory_;
 	std::vector<Eigen::Vector3d> optimized_trajectory_;

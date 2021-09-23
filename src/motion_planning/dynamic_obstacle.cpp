@@ -14,19 +14,17 @@ Eigen::Vector3d DynamicObstacle::predict_path(double node_time) {
 	predict_position(0) = (this->second_position_(0) - this->start_position_(0)) * move_distance / unit_distance + this->start_position_(0);
 	predict_position(1) = (this->second_position_(1) - this->start_position_(1)) * move_distance / unit_distance + this->start_position_(1);
 	predict_position(2) = (this->second_position_(2) - this->start_position_(2)) * move_distance / unit_distance + this->start_position_(2);
-
 	if (node_time > this->planning_horizon_time_) {
 		predict_position(0) = 100;
 		predict_position(1) = 100;
 		predict_position(2) = 100;
 	}
 
-	//std::cout << "The node time is: " << node_time << " .And the predict position is: " << predict_position(0) << " " << predict_position(1) << std::endl;
 	return predict_position;
 }
 
 bool DynamicObstacle::check_if_node_inside_dynamic_obstacle(const std::shared_ptr<RRTXNode>& node) {
-	Eigen::Vector2d node_position(node->get_state()(0), node->get_state()(1));
+	Eigen::Vector3d node_position = node->get_state();
 	double node_time = node->get_time();
 
 	/*if (node_time < this->start_time_) {
@@ -40,8 +38,6 @@ bool DynamicObstacle::check_if_node_inside_dynamic_obstacle(const std::shared_pt
 	*/
 
 	Eigen::Vector3d predict_position = this->predict_path(node_time);
-	//std::cout << "Node time: " << node->get_time() << std::endl;
-	//std::cout << "Node position: " << node_position(0) << " " << node_position(1) << " Predict pos: " <<  predict_position(0) << " " << predict_position(1) << " distance: " << optimized_motion_planner_utils::get_distance_2d(predict_position, node_position) -4.5 << std::endl;
 	bool res = optimized_motion_planner_utils::get_distance(predict_position, node->get_state()) - this->quadrotor_radius_ < this->dynamic_obstacle_size_;
 
 	if (res) {
